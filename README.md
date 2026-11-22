@@ -56,6 +56,18 @@ wget -O /boot/config/plugins/dockerMan/templates-user/my-buffarr.xml \
 Then go to **Docker -> Add Container** and pick **buffarr** from the
 **Template** list.
 
+To pick up fields added to the template later, **don't** download it again
+over `my-buffarr.xml`: that file holds your filled-in settings. Run
+[`unraid/update-template.py`](unraid/update-template.py) instead. It adds only
+the missing fields and keeps a `.bak` copy:
+
+```bash
+docker run --rm --entrypoint python3 \
+  -v /boot/config/plugins/dockerMan/templates-user:/t \
+  ghcr.io/lolles1911/buffarr-wafflehub:latest -c \
+  "$(curl -fsSL https://raw.githubusercontent.com/Lolles1911/buffarr-wafflehub/main/unraid/update-template.py)"
+```
+
 You can also add it by hand as a standard container with the same image, or
 run `docker compose up -d` from this repo over SSH:
 
