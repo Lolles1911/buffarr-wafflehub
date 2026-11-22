@@ -44,9 +44,20 @@ cp .env.example .env  # edit it
 
 ### Unraid
 
-Add it in the Unraid Docker tab as a standard container using the
-`ghcr.io/poag/buffarr:latest` image (or `docker compose up -d` from this
-repo over SSH):
+The easiest route is the template in [`unraid/buffarr.xml`](unraid/buffarr.xml).
+It uses the `ghcr.io/lolles1911/buffarr-wafflehub:latest` image, the build that
+includes Silo support. On the Unraid server, run:
+
+```bash
+wget -O /boot/config/plugins/dockerMan/templates-user/my-buffarr.xml \
+  https://raw.githubusercontent.com/Lolles1911/buffarr-wafflehub/main/unraid/buffarr.xml
+```
+
+Then go to **Docker -> Add Container** and pick **buffarr** from the
+**Template** list.
+
+You can also add it by hand as a standard container with the same image, or
+run `docker compose up -d` from this repo over SSH:
 
 1. Fill in `SONARR_URL` / `SONARR_API_KEY` and, if you want prefetch too,
    `ENABLE_PREFETCH` + the `MEDIA_SERVER_*` fields. Everything else has a

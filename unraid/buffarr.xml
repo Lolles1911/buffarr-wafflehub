@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>buffarr</Name>
+  <Repository>ghcr.io/lolles1911/buffarr-wafflehub:latest</Repository>
+  <Registry>https://github.com/Lolles1911/buffarr-wafflehub/pkgs/container/buffarr-wafflehub</Registry>
+  <Network>bridge</Network>
+  <Shell>bash</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Lolles1911/buffarr-wafflehub/issues</Support>
+  <Project>https://github.com/Lolles1911/buffarr-wafflehub</Project>
+  <Overview>buffarr combines prefetch and unmonitor in one container.&#xD;
+prefetch: watches what's playing on Jellyfin, Emby, Plex, Tautulli or Silo and asks Sonarr to grab the next episodes before you catch up.&#xD;
+unmonitor: keeps Sonarr/Radarr from grabbing fake pre-release files by unmonitoring content until its air/release date plus a delay has passed.&#xD;
+DRY_RUN=1 (default) only logs unmonitor changes; prefetch always acts on Sonarr when enabled.</Overview>
+  <Category>MediaApp:Video Downloaders: Tools:</Category>
+  <WebUI/>
+  <TemplateURL>https://raw.githubusercontent.com/Lolles1911/buffarr-wafflehub/main/unraid/buffarr.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/Lolles1911/buffarr-wafflehub/main/assets/icon.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires>Sonarr (and optionally Radarr). For Silo, an sa_ API key from an administrator account.</Requires>
+
+  <Config Name="Config" Target="/config" Default="/mnt/user/appdata/buffarr" Mode="rw" Description="Appdata: optional conf/config.toml and rotating logs/" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/buffarr</Config>
+  <Config Name="Webhook port" Target="5099" Default="5099" Mode="tcp" Description="Webhook (/trigger/sonarr, /trigger/radarr) and /health" Type="Port" Display="always" Required="false" Mask="false">5099</Config>
+
+  <Config Name="TZ" Target="TZ" Default="Europe/Copenhagen" Description="Time zone" Type="Variable" Display="always" Required="false" Mask="false">Europe/Copenhagen</Config>
+  <Config Name="DRY_RUN" Target="DRY_RUN" Default="1" Description="1 = unmonitor only logs what it would change; 0 = apply changes" Type="Variable" Display="always" Required="false" Mask="false">1</Config>
+  <Config Name="LOG_LEVEL" Target="LOG_LEVEL" Default="INFO" Description="DEBUG, INFO, WARNING or ERROR" Type="Variable" Display="always" Required="false" Mask="false">INFO</Config>
+
+  <Config Name="ENABLE_SONARR" Target="ENABLE_SONARR" Default="1" Description="Run unmonitor for Sonarr (1/0)" Type="Variable" Display="always" Required="false" Mask="false">1</Config>
+  <Config Name="SONARR_URL" Target="SONARR_URL" Default="" Description="e.g. http://192.168.1.10:8989 (also used by prefetch)" Type="Variable" Display="always" Required="true" Mask="false"></Config>
+  <Config Name="SONARR_API_KEY" Target="SONARR_API_KEY" Default="" Description="Sonarr: Settings -> General -> Security" Type="Variable" Display="always" Required="true" Mask="true"></Config>
+
+  <Config Name="ENABLE_RADARR" Target="ENABLE_RADARR" Default="0" Description="Run unmonitor for Radarr (1/0)" Type="Variable" Display="always" Required="false" Mask="false">0</Config>
+  <Config Name="RADARR_URL" Target="RADARR_URL" Default="" Description="e.g. http://192.168.1.10:7878" Type="Variable" Display="always" Required="false" Mask="false"></Config>
+  <Config Name="RADARR_API_KEY" Target="RADARR_API_KEY" Default="" Description="Radarr: Settings -> General -> Security" Type="Variable" Display="always" Required="false" Mask="true"></Config>
+
+  <Config Name="ENABLE_PREFETCH" Target="ENABLE_PREFETCH" Default="0" Description="Enable prefetch (1/0)" Type="Variable" Display="always" Required="false" Mask="false">0</Config>
+  <Config Name="MEDIA_SERVER_TYPE" Target="MEDIA_SERVER_TYPE" Default="silo|jellyfin|emby|plex|tautulli" Description="Media server for prefetch. Silo: use silo, not jellyfin" Type="Variable" Display="always" Required="false" Mask="false">silo</Config>
+  <Config Name="MEDIA_SERVER_URL" Target="MEDIA_SERVER_URL" Default="" Description="e.g. http://192.168.1.10:8080" Type="Variable" Display="always" Required="false" Mask="false"></Config>
+  <Config Name="MEDIA_SERVER_API_KEY" Target="MEDIA_SERVER_API_KEY" Default="" Description="Silo: sa_ key from an admin account. Plex: server token. Tautulli/Jellyfin/Emby: API key" Type="Variable" Display="always" Required="false" Mask="true"></Config>
+  <Config Name="MEDIA_SERVER_USERS" Target="MEDIA_SERVER_USERS" Default="" Description="Comma-separated users to watch (Silo: profile names or IDs). Empty = all" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+  <Config Name="MEDIA_SERVER_LIBRARIES" Target="MEDIA_SERVER_LIBRARIES" Default="" Description="Comma-separated library names to watch. Empty = all" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+  <Config Name="PREFETCH_INTERVAL" Target="PREFETCH_INTERVAL" Default="900" Description="Seconds between media-server polls" Type="Variable" Display="advanced" Required="false" Mask="false">900</Config>
+  <Config Name="PREFETCH_NUM" Target="PREFETCH_NUM" Default="2" Description="Episodes to keep available ahead" Type="Variable" Display="advanced" Required="false" Mask="false">2</Config>
+  <Config Name="PREFETCH_REQUEST_SEASONS" Target="PREFETCH_REQUEST_SEASONS" Default="1" Description="Prefer season-pack searches (1/0)" Type="Variable" Display="advanced" Required="false" Mask="false">1</Config>
+  <Config Name="PREFETCH_CHECK_AIRED" Target="PREFETCH_CHECK_AIRED" Default="0" Description="Skip episodes that have not aired yet (1/0)" Type="Variable" Display="advanced" Required="false" Mask="false">0</Config>
+  <Config Name="PREFETCH_EXCLUDE_TAG" Target="PREFETCH_EXCLUDE_TAG" Default="" Description="Sonarr tag that excludes a series from prefetch" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+
+  <Config Name="SLEEP_MINUTES" Target="SLEEP_MINUTES" Default="30" Description="Minutes between unmonitor runs" Type="Variable" Display="advanced" Required="false" Mask="false">30</Config>
+  <Config Name="DELAY_MINUTES" Target="DELAY_MINUTES" Default="120" Description="Minutes after air/release before re-monitoring" Type="Variable" Display="advanced" Required="false" Mask="false">120</Config>
+  <Config Name="AUTO_TAG_NAME" Target="AUTO_TAG_NAME" Default="auto-unmonitored" Description="Tag buffarr puts on items it unmonitored" Type="Variable" Display="advanced" Required="false" Mask="false">auto-unmonitored</Config>
+  <Config Name="IGNORE_TAG_NAME" Target="IGNORE_TAG_NAME" Default="ignore" Description="Items with this tag are never touched" Type="Variable" Display="advanced" Required="false" Mask="false">ignore</Config>
+
+  <Config Name="PUID" Target="PUID" Default="99" Description="User ID the app runs as" Type="Variable" Display="advanced" Required="false" Mask="false">99</Config>
+  <Config Name="PGID" Target="PGID" Default="100" Description="Group ID the app runs as" Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
+</Container>
