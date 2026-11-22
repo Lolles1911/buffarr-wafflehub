@@ -1,4 +1,6 @@
 import os
+import re
+from dataclasses import dataclass, field
 
 
 def env_bool(name: str, default: str = "0") -> bool:
@@ -24,6 +26,51 @@ def env_url(name: str) -> str:
 def env_list(name: str, default: str = "") -> list:
     raw = os.environ.get(name, default)
     return [v.strip() for v in raw.split(",") if v.strip()]
+
+
+@dataclass(frozen=True)
+class MediaServer:
+    """One media server prefetch watches. `name` is how logs refer to it."""
+
+    name: str
+    type: str
+    url: str
+    api_key: str
+    users: list = field(default_factory=list)
+    libraries: list = field(default_factory=list)
+
+
+_NUMBERED_SLOT = re.compile(r"^MEDIA_SERVER_(\d+)_(?:TYPE|URL|API_KEY)$")
+
+
+def media_servers() -> list:
+    """Every configured media server. The unnumbered MEDIA_SERVER_* settings
+    are server 1; MEDIA_SERVER_2_*, MEDIA_SERVER_3_*, ... add more. Each
+    server has its own TYPE, URL, API_KEY, USERS and LIBRARIES. A server
+    without a URL is skipped."""
+    prefixes = ["MEDIA_SERVER"]
+    numbers = sorted(
+        {int(m.group(1)) for k in os.environ if (m := _NUMBERED_SLOT.match(k)) and int(m.group(1)) >= 2}
+    )
+    prefixes += [f"MEDIA_SERVER_{n}" for n in numbers]
+
+    servers = []
+    for i, prefix in enumerate(prefixes):
+        url = env_url(f"{prefix}_URL")
+        if not url:
+            continue
+        kind = os.environ.get(f"{prefix}_TYPE", "jellyfin").strip().lower()
+        servers.append(
+            MediaServer(
+                name=kind if i == 0 else f"{kind} ({prefix})",
+                type=kind,
+                url=url,
+                api_key=os.environ.get(f"{prefix}_API_KEY", "").strip(),
+                users=env_list(f"{prefix}_USERS"),
+                libraries=env_list(f"{prefix}_LIBRARIES"),
+            )
+        )
+    return servers
 
 
 class Config:
@@ -69,6 +116,7 @@ class Config:
     MEDIA_SERVER_API_KEY = os.environ.get("MEDIA_SERVER_API_KEY", "")
     MEDIA_SERVER_USERS = env_list("MEDIA_SERVER_USERS")
     MEDIA_SERVER_LIBRARIES = env_list("MEDIA_SERVER_LIBRARIES")
+    MEDIA_SERVERS = media_servers()
 
     PREFETCH_INTERVAL = env_int("PREFETCH_INTERVAL", "900")
     PREFETCH_NUM = env_int("PREFETCH_NUM", "2")

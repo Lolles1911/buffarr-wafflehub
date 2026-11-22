@@ -51,6 +51,10 @@ MEDIA_SERVER_URL = "http://localhost:8096"
 MEDIA_SERVER_API_KEY = "YOUR_KEY"
 # MEDIA_SERVER_USERS = ["John", "12345"]
 # MEDIA_SERVER_LIBRARIES = ["TV Shows", "Anime"]
+# More media servers, watched at the same time:
+# MEDIA_SERVER_2_TYPE = "plex"
+# MEDIA_SERVER_2_URL = "http://localhost:32400"
+# MEDIA_SERVER_2_API_KEY = "YOUR_TOKEN"
 PREFETCH_INTERVAL = 900
 PREFETCH_NUM = 2
 PREFETCH_REQUEST_SEASONS = true

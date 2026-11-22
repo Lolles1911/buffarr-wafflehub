@@ -242,6 +242,7 @@ Per-item overrides: tag a series/movie with `delayby_<N>` (e.g.
 | `MEDIA_SERVER_URL` / `MEDIA_SERVER_API_KEY` | | Media server connection (Plex: server token; Tautulli: API key; Silo: admin API key) |
 | `MEDIA_SERVER_USERS` | *(all)* | Comma-separated user IDs/names to watch (Silo: profile names or IDs) |
 | `MEDIA_SERVER_LIBRARIES` | *(all)* | Comma-separated library names to watch |
+| `MEDIA_SERVER_2_*`, `MEDIA_SERVER_3_*`, ... | | More media servers to watch at the same time -- see below |
 | `PREFETCH_INTERVAL` | `900` | Polling interval in seconds |
 | `PREFETCH_NUM` | `2` | Episodes to keep available in advance |
 | `PREFETCH_REQUEST_SEASONS` | `1` | Prefer season-pack searches over per-episode |
@@ -249,6 +250,32 @@ Per-item overrides: tag a series/movie with `delayby_<N>` (e.g.
 | `PREFETCH_CHECK_AIRED` | `0` | Skip episodes that haven't aired yet |
 | `PREFETCH_CONNECTION_RETRIES` | `6` | Retries when initially connecting to Sonarr/media server |
 | `PREFETCH_EXCLUDE_TAG` | *(none)* | Sonarr tag that excludes a series from prefetching |
+
+#### Several media servers
+
+One buffarr can watch several media servers at once, e.g. Silo and Plex. The
+unnumbered `MEDIA_SERVER_*` settings are server 1; add more with a number
+after `MEDIA_SERVER_`. Each server has its own `TYPE`, `URL`, `API_KEY`,
+`USERS` and `LIBRARIES`:
+
+```env
+MEDIA_SERVER_TYPE=silo
+MEDIA_SERVER_URL=http://192.168.1.10:8080
+MEDIA_SERVER_API_KEY=sa_...
+
+MEDIA_SERVER_2_TYPE=plex
+MEDIA_SERVER_2_URL=http://192.168.1.10:32400
+MEDIA_SERVER_2_API_KEY=...
+MEDIA_SERVER_2_LIBRARIES=TV Shows
+
+MEDIA_SERVER_3_TYPE=jellyfin
+MEDIA_SERVER_3_URL=http://192.168.1.10:8096
+MEDIA_SERVER_3_API_KEY=...
+```
+
+A server with no URL is skipped, so empty slots in the Unraid template are
+harmless. All servers share the same Sonarr and `PREFETCH_*` settings. If one
+server can't be reached, it's logged and the others keep running.
 
 #### API keys
 
