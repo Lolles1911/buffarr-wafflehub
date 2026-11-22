@@ -83,7 +83,7 @@ class ProvideNowPlaying:
             try:
                 out.append(await self.extract(session))
             except Exception as e:
-                log.debug("Ignoring session: %s", e)
+                log.warning("Ignoring session: %s", e)
         return out
 
 

@@ -77,11 +77,16 @@ class Client(BaseClient):
                 ):
                     valid.append(s)
                 else:
-                    log.debug("ignoring non-episode or malformed session: %s", s.get("session_id"))
+                    log.debug(
+                        "ignoring session %s: media_type=%r media_item_id=%r season=%r episode=%r title=%r",
+                        s.get("session_id"), s.get("media_type"), s.get("media_item_id"),
+                        s.get("season_number"), s.get("episode_number"), _series_title(s),
+                    )
             page = data.get("page") or {}
             cursor = page.get("next_cursor")
             if not (page.get("has_more") and cursor):
                 break
+        log.debug("silo reports %d playing episode(s)", len(valid))
         return valid
 
     async def _catalog_item(self, content_id: str) -> Optional[dict]:
