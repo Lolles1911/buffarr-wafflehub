@@ -7,7 +7,7 @@
 [unmonitarr](https://github.com/unmonitarr/unmonitarr) into a single service
 with full feature parity with both:
 
-- **prefetch** -- watches what's playing on Jellyfin, Emby, Plex, or Tautulli
+- **prefetch** -- watches what's playing on Jellyfin, Emby, Plex, Tautulli, or Silo
   and asks Sonarr to grab the next episodes of the show before you catch up
   to them.
 - **unmonitor** -- keeps Sonarr/Radarr from grabbing fake pre-release files
@@ -20,7 +20,7 @@ Both features share a single Sonarr connection (`SONARR_URL` /
 ## Why combine them?
 
 If you run Sonarr/Radarr behind public indexers, unmonitor keeps you from
-grabbing fake pre-release junk. If you also stream from Jellyfin/Emby/Plex,
+grabbing fake pre-release junk. If you also stream from Jellyfin/Emby/Plex/Silo,
 prefetch keeps the next few episodes of whatever you're watching ready to go
 before you get there. They're complementary and commonly run side by side --
 buffarr just runs them as one service instead of two.
@@ -227,9 +227,9 @@ Per-item overrides: tag a series/movie with `delayby_<N>` (e.g.
 | Variable | Default | Description |
 |---|---|---|
 | `ENABLE_PREFETCH` | `0` | Enable the prefetch feature |
-| `MEDIA_SERVER_TYPE` | `jellyfin` | `jellyfin`, `emby`, `plex`, or `tautulli` |
-| `MEDIA_SERVER_URL` / `MEDIA_SERVER_API_KEY` | | Media server connection (Plex: server token; Tautulli: API key) |
-| `MEDIA_SERVER_USERS` | *(all)* | Comma-separated user IDs/names to watch |
+| `MEDIA_SERVER_TYPE` | `jellyfin` | `jellyfin`, `emby`, `plex`, `tautulli`, or `silo` |
+| `MEDIA_SERVER_URL` / `MEDIA_SERVER_API_KEY` | | Media server connection (Plex: server token; Tautulli: API key; Silo: admin API key) |
+| `MEDIA_SERVER_USERS` | *(all)* | Comma-separated user IDs/names to watch (Silo: profile names or IDs) |
 | `MEDIA_SERVER_LIBRARIES` | *(all)* | Comma-separated library names to watch |
 | `PREFETCH_INTERVAL` | `900` | Polling interval in seconds |
 | `PREFETCH_NUM` | `2` | Episodes to keep available in advance |
@@ -246,6 +246,12 @@ Per-item overrides: tag a series/movie with `delayby_<N>` (e.g.
 - **Emby**: gear icon -> `Advanced -> Api Keys`
 - **Plex**: [extract the server token](https://www.plexopedia.com/plex-media-server/general/plex-token/#plexservertoken)
 - **Tautulli**: `Settings -> Web Interface -> API`
+- **Silo**: create an `sa_` API key on an **administrator** account. Use
+  `MEDIA_SERVER_TYPE=silo` -- not `jellyfin` -- because Silo's
+  Jellyfin-compatible `/Sessions` only shows the key's own plays. The silo
+  backend reads Silo's native admin API (`/api/v2/admin/sessions`,
+  `/api/v2/admin/catalog/items`, `/api/v2/libraries`); a scoped key needs
+  access to those routes. `PREFETCH_APPEND_TO_QUEUE` is not supported.
 
 ## Migrating from prefetcharr or unmonitarr
 

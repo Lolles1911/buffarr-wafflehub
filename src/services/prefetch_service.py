@@ -8,7 +8,7 @@ import aiohttp
 
 from core.config import CONFIG
 from prefetch.actor import Actor
-from prefetch.mediaserver import jellyfin_emby, plex, tautulli
+from prefetch.mediaserver import jellyfin_emby, plex, silo, tautulli
 from prefetch.mediaserver.base import HasPendingFlag, libraries_filter, users_filter
 from sonarr.client import Client as SonarrClient
 
@@ -32,6 +32,14 @@ def _build_media_client(session: aiohttp.ClientSession):
         if CONFIG.PREFETCH_APPEND_TO_QUEUE:
             log.warning(
                 "append_to_queue is not supported with Tautulli (read-only). "
+                "The feature will be a no-op for this backend."
+            )
+        return client, None
+    if server_type == "silo":
+        client = silo.Client(CONFIG.MEDIA_SERVER_URL, CONFIG.MEDIA_SERVER_API_KEY, session)
+        if CONFIG.PREFETCH_APPEND_TO_QUEUE:
+            log.warning(
+                "append_to_queue is not supported with Silo. "
                 "The feature will be a no-op for this backend."
             )
         return client, None
