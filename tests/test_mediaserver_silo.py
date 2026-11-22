@@ -166,3 +166,45 @@ async def test_movie_is_still_skipped():
         m.get(SESSIONS, payload={"items": [_session(media_type="movie")], "page": {"has_more": False}})
         async with aiohttp.ClientSession() as session:
             assert await silo.Client(BASE, "sa_secret", session).sessions() == []
+
+
+SERIES_LIST = re.compile(r"^http://silo/api/v2/admin/catalog/items\?.*type=series.*$")
+
+
+async def test_session_without_media_item_id_is_matched_by_title():
+    raw = _session(media_type="series", media_title="Dexter: Resurrection", media_item_id=None, season_number=2, episode_number=4)
+    del raw["series_title"]
+    with aioresponses() as m:
+        m.get(SESSIONS, payload={"items": [raw], "page": {"has_more": False}})
+        m.get(
+            SERIES_LIST,
+            payload={
+                "items": [
+                    {"content_id": "s-1", "type": "series", "title": "Dexter", "tvdb_id": "79349", "library_ids": ["4"]},
+                    {"content_id": "s-2", "type": "series", "title": "Dexter: Resurrection", "tvdb_id": "445590", "library_ids": ["4"]},
+                ],
+                "page": {"has_more": False},
+            },
+        )
+        m.get(f"{BASE}/api/v2/libraries", payload={"items": [{"id": "4", "name": "TV Shows"}]})
+
+        async with aiohttp.ClientSession() as session:
+            client = silo.Client(BASE, "sa_secret", session)
+            sessions = await client.sessions()
+            assert len(sessions) == 1
+            np = await client.extract(sessions[0])
+
+    assert np.series == Series.tvdb(445590)
+    assert (np.season, np.episode) == (2, 4)
+    assert np.library == "TV Shows"
+
+
+async def test_unknown_title_falls_back_to_title_match():
+    raw = _session(media_item_id=None, series_title="Unknown Show")
+    with aioresponses() as m:
+        m.get(SERIES_LIST, payload={"items": [], "page": {"has_more": False}})
+        async with aiohttp.ClientSession() as session:
+            np = await silo.Client(BASE, "sa_secret", session).extract(raw)
+
+    assert np.series == Series.title("Unknown Show")
+    assert np.library is None

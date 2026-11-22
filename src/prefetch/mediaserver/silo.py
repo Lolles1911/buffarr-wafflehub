@@ -16,6 +16,7 @@ supported.
 """
 
 import logging
+import time
 from typing import Optional
 
 import aiohttp
@@ -27,6 +28,8 @@ log = logging.getLogger("media_server.silo")
 
 API = "api/v2"
 MAX_SESSION_PAGES = 20
+MAX_CATALOG_PAGES = 100
+SERIES_INDEX_TTL = 60 * 60  # seconds
 
 
 def _series_title(session: dict):
@@ -44,6 +47,8 @@ class Client(BaseClient):
         self._headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
         self._series_cache: dict = {}
         self._library_names: dict = {}
+        self._series_index: dict = {}
+        self._series_index_at: Optional[float] = None
 
     async def _get(self, path: str, params=None):
         url = f"{self.base_url}/{API}/{path}"
@@ -69,7 +74,6 @@ class Client(BaseClient):
                 # episode numbers are still set, so accept both shapes.
                 if (
                     s.get("media_type") in ("episode", "series")
-                    and isinstance(s.get("media_item_id"), str)
                     and isinstance(s.get("season_number"), int)
                     and isinstance(s.get("episode_number"), int)
                     and isinstance(_series_title(s), str)
@@ -110,6 +114,33 @@ class Client(BaseClient):
         self._series_cache[series_id] = series
         return series
 
+    async def _series_by_title(self, title: str) -> Optional[dict]:
+        """Find a series item by title, for sessions Silo reports without a
+        media_item_id. The index of every series is cached for an hour."""
+        now = time.monotonic()
+        stale = self._series_index_at is None or now - self._series_index_at > SERIES_INDEX_TTL
+        key = title.casefold()
+        if stale or key not in self._series_index:
+            if not stale and self._series_index_at is not None and now - self._series_index_at < 60:
+                return None  # rebuilt under a minute ago; the title is not there
+            index: dict = {}
+            cursor: Optional[str] = None
+            for _ in range(MAX_CATALOG_PAGES):
+                params = {"type": "series", "limit": "200"}
+                if cursor:
+                    params["cursor"] = cursor
+                data = await self._get("admin/catalog/items", params)
+                for item in data.get("items") or []:
+                    if item.get("title"):
+                        index.setdefault(item["title"].casefold(), item)
+                page = data.get("page") or {}
+                cursor = page.get("next_cursor")
+                if not (page.get("has_more") and cursor):
+                    break
+            self._series_index = index
+            self._series_index_at = now
+        return self._series_index.get(key)
+
     async def _library_name(self, library_id) -> Optional[str]:
         if library_id is None:
             return None
@@ -123,7 +154,14 @@ class Client(BaseClient):
 
     async def extract(self, session: dict) -> NowPlaying:
         title = _series_title(session)
-        episode_item = await self._catalog_item(session["media_item_id"])
+        if session.get("media_item_id"):
+            episode_item = await self._catalog_item(session["media_item_id"])
+        else:
+            # Silo can report a play without a content id; find the series
+            # by title instead.
+            episode_item = await self._series_by_title(title)
+            if episode_item is None:
+                log.info("Silo series %r not found in the catalog; matching Sonarr by title", title)
 
         series = Series.title(title)
         library_id = None
