@@ -40,3 +40,14 @@ def test_env_overrides(monkeypatch):
     assert cfg.DRY_RUN is False
     assert cfg.MEDIA_SERVER_USERS == ["John", "12345", "Axel F"]
     assert cfg.MEDIA_SERVER_TYPE == "plex"
+
+
+def test_env_url_adds_scheme_and_trims(monkeypatch):
+    from core.config import env_url
+
+    monkeypatch.setenv("X_URL", " 192.168.1.235:8989/ ")
+    assert env_url("X_URL") == "http://192.168.1.235:8989"
+    monkeypatch.setenv("X_URL", "https://sonarr.example/")
+    assert env_url("X_URL") == "https://sonarr.example"
+    monkeypatch.setenv("X_URL", "")
+    assert env_url("X_URL") == ""
