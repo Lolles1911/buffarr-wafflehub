@@ -77,13 +77,25 @@ async def _watch_server(server: MediaServer, session: aiohttp.ClientSession, son
     await asyncio.gather(watch_sessions(), media_client.run())
 
 
-async def _watch_server_safely(server: MediaServer, session, sonarr) -> None:
-    try:
-        await _watch_server(server, session, sonarr)
-    except asyncio.CancelledError:
-        raise
-    except Exception as e:
-        log.error("Stopped watching %s at %s: %s", server.name, server.url, e)
+RECONNECT_SECONDS = 300
+
+
+async def _watch_server_safely(server: MediaServer, session, sonarr, reconnect_seconds: float = RECONNECT_SECONDS) -> None:
+    """Watch one server forever: if it can't be reached (or the watch loop
+    dies), log it and try again after `reconnect_seconds`, so a media server
+    that is down when buffarr starts is picked up once it comes back."""
+    while True:
+        try:
+            await _watch_server(server, session, sonarr)
+            return
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            log.error(
+                "Lost %s at %s: %s -- trying again in %d seconds",
+                server.name, server.url, e, reconnect_seconds,
+            )
+        await asyncio.sleep(reconnect_seconds)
 
 
 async def run(session: aiohttp.ClientSession) -> None:

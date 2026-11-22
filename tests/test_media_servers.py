@@ -70,10 +70,14 @@ async def test_one_failing_server_does_not_stop_the_others(clean_media_env, monk
     from services import prefetch_service
 
     watched = []
+    plex_attempts = 0
 
     async def fake_watch(server, session, sonarr):
+        nonlocal plex_attempts
         if server.type == "plex":
-            raise RuntimeError("unreachable")
+            plex_attempts += 1
+            if plex_attempts < 3:
+                raise RuntimeError("unreachable")
         watched.append(server.type)
 
     monkeypatch.setattr(prefetch_service, "_watch_server", fake_watch)
@@ -81,8 +85,10 @@ async def test_one_failing_server_does_not_stop_the_others(clean_media_env, monk
         MediaServer("plex", "plex", "http://plex", "p"),
         MediaServer("silo", "silo", "http://silo", "s"),
     ]
-    await asyncio.gather(*(prefetch_service._watch_server_safely(s, None, None) for s in servers))
-    assert watched == ["silo"]
+    await asyncio.gather(*(prefetch_service._watch_server_safely(s, None, None, 0) for s in servers))
+    # silo is unaffected; plex is retried until it comes back
+    assert sorted(watched) == ["plex", "silo"]
+    assert plex_attempts == 3
 
 
 def test_build_media_client_types():
