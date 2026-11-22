@@ -29,6 +29,14 @@ API = "api/v2"
 MAX_SESSION_PAGES = 20
 
 
+def _series_title(session: dict):
+    if session.get("series_title"):
+        return session["series_title"]
+    if session.get("media_type") == "series":
+        return session.get("media_title")
+    return None
+
+
 class Client(BaseClient):
     def __init__(self, base_url: str, api_key: str, session: aiohttp.ClientSession):
         self.base_url = base_url.rstrip("/")
@@ -55,12 +63,16 @@ class Client(BaseClient):
                 params["cursor"] = cursor
             data = await self._get("admin/sessions", params)
             for s in data.get("items") or []:
+                # An episode Silo has no episode title for is reported with
+                # its series' fields: media_type "series", the series title
+                # in media_title and the series' content id. Season and
+                # episode numbers are still set, so accept both shapes.
                 if (
-                    s.get("media_type") == "episode"
+                    s.get("media_type") in ("episode", "series")
                     and isinstance(s.get("media_item_id"), str)
                     and isinstance(s.get("season_number"), int)
                     and isinstance(s.get("episode_number"), int)
-                    and isinstance(s.get("series_title"), str)
+                    and isinstance(_series_title(s), str)
                     and isinstance(s.get("profile_id"), str)
                 ):
                     valid.append(s)
@@ -79,11 +91,12 @@ class Client(BaseClient):
                 return item
         return None
 
-    async def _series(self, series_id: str, title: str) -> Series:
+    async def _series(self, series_id: str, title: str, item: Optional[dict] = None) -> Series:
         cached = self._series_cache.get(series_id)
         if cached is not None:
             return cached
-        item = await self._catalog_item(series_id)
+        if item is None:
+            item = await self._catalog_item(series_id)
         tvdb = (item or {}).get("tvdb_id")
         try:
             series = Series.tvdb(int(tvdb)) if tvdb else Series.title(title)
@@ -104,15 +117,17 @@ class Client(BaseClient):
         return self._library_names.get(key)
 
     async def extract(self, session: dict) -> NowPlaying:
-        title = session["series_title"]
+        title = _series_title(session)
         episode_item = await self._catalog_item(session["media_item_id"])
 
         series = Series.title(title)
         library_id = None
         if episode_item is not None:
-            series_id = episode_item.get("series_id")
-            if series_id:
-                series = await self._series(series_id, title)
+            if episode_item.get("type") == "series":
+                # The session named the series itself; it carries the TVDB id.
+                series = await self._series(episode_item["content_id"], title, episode_item)
+            elif episode_item.get("series_id"):
+                series = await self._series(episode_item["series_id"], title)
             file_id = str(session.get("media_file_id"))
             versions = episode_item.get("versions") or []
             match = next((v for v in versions if str(v.get("file_id")) == file_id), None)

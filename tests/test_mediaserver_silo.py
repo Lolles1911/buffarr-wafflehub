@@ -134,3 +134,35 @@ async def test_probe_hits_capabilities():
         m.get(f"{BASE}/api/v2/admin/sessions/capabilities", payload={"available": True})
         async with aiohttp.ClientSession() as session:
             await silo.Client(BASE, "sa_secret", session).probe()
+
+
+async def test_episode_reported_as_series_is_accepted():
+    """Silo reports an episode without its own title with the series'
+    fields: media_type "series", the series title in media_title, no
+    series_title, and the series' content id as media_item_id."""
+    raw = _session(media_type="series", media_title="Dexter", media_item_id="series-9", season_number=2, episode_number=4)
+    del raw["series_title"]
+    with aioresponses() as m:
+        m.get(SESSIONS, payload={"items": [raw], "page": {"has_more": False}})
+        m.get(
+            _catalog("series-9"),
+            payload={"items": [{"content_id": "series-9", "type": "series", "tvdb_id": "79349", "library_ids": ["4"], "versions": []}]},
+        )
+        m.get(f"{BASE}/api/v2/libraries", payload={"items": [{"id": "4", "name": "TV Shows"}]})
+
+        async with aiohttp.ClientSession() as session:
+            client = silo.Client(BASE, "sa_secret", session)
+            sessions = await client.sessions()
+            assert len(sessions) == 1
+            np = await client.extract(sessions[0])
+
+    assert np.series == Series.tvdb(79349)
+    assert (np.season, np.episode) == (2, 4)
+    assert np.library == "TV Shows"
+
+
+async def test_movie_is_still_skipped():
+    with aioresponses() as m:
+        m.get(SESSIONS, payload={"items": [_session(media_type="movie")], "page": {"has_more": False}})
+        async with aiohttp.ClientSession() as session:
+            assert await silo.Client(BASE, "sa_secret", session).sessions() == []
