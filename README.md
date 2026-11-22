@@ -1,6 +1,11 @@
 <div align="center">
   <img src="assets/icon.svg" width="140" alt="buffarr icon" />
   <h1>buffarr</h1>
+
+  <a href="https://github.com/Lolles1911/buffarr-wafflehub/actions/workflows/tests.yml"><img src="https://github.com/Lolles1911/buffarr-wafflehub/actions/workflows/tests.yml/badge.svg" alt="Tests" /></a>
+  <a href="https://github.com/Lolles1911/buffarr-wafflehub/actions/workflows/docker-publish.yml"><img src="https://github.com/Lolles1911/buffarr-wafflehub/actions/workflows/docker-publish.yml/badge.svg" alt="Docker" /></a>
+  <a href="https://github.com/Lolles1911/buffarr-wafflehub/pkgs/container/buffarr-wafflehub"><img src="https://img.shields.io/badge/ghcr.io-buffarr--wafflehub-blue?logo=docker&amp;logoColor=white" alt="ghcr.io image" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT" /></a>
 </div>
 
 **buffarr** combines [prefetcharr](https://github.com/p-hueber/prefetcharr) and
